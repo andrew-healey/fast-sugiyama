@@ -1,4 +1,5 @@
-import { LayoutOptions } from '@/interface/definition';
+// import { LayoutOptions } from '@/interface/definition';
+import {LayoutOptions} from './definition.js';
 
 // default property name for graph
 export const PX = '_x';
@@ -10,27 +11,6 @@ export enum Direction {
   RIGHT,
   UP,
   DOWN,
-}
-
-export interface HashMap {
-  [key: string]: any;
-}
-
-export interface Priority {
-  up: number;
-  down: number;
-}
-
-export interface Order {
-  value: number;
-  idx: number;
-}
-
-export interface BKOptions {
-  root: object;
-  align: object;
-  sink: object;
-  shift: object;
 }
 
 export const defaultOptions: LayoutOptions = {

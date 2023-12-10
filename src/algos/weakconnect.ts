@@ -1,34 +1,32 @@
-import Graph, { Vertex, Edge } from '@/interface/graph';
-import { HashMap } from '@/interface/definition';
+import Graph from '../interface/graph';
+import {assert} from '../utils/uuid';
 
-export function divide(g: Graph): Graph[] {
-  let graphs: Graph[] = [];
-  let visited: HashMap = {};
-  g.vertices.map((v) => {
-    if (!visited[v.id]) {
-      visited[v.id] = v;
-      let vertices: Vertex[] = [v];
-      let edges: Edge[] = [];
-      let nodes: Vertex[] = [v];
-      while (nodes.length) {
-        const node: Vertex = nodes.shift() as Vertex;
-        node.edges.map((edge) => {
-          edges.indexOf(edge) < 0 && edges.push(edge);
-          if (edge.up == node && !visited[edge.down.id]) {
-            visited[edge.down.id] = edge.down;
-            nodes.push(edge.down);
-            vertices.push(edge.down);
-          }
-          if (edge.down == node && !visited[edge.up.id]) {
-            visited[edge.up.id] = edge.up;
-            nodes.push(edge.up);
-            vertices.push(edge.up);
-          }
-        });
+export function divide<T>(g: Graph<T>): Graph<T>[] {
+  let graphs: Graph<T>[] = [];
+  let visited: Set<string> = new Set;
+  for(let v of g.ns()){
+    if(visited.has(v)) continue;
+    visited.add(v);
+
+    const newGraph = new Graph<T>();
+
+    let nodes: string[] = [v];
+    newGraph.addNode(v);
+    while (nodes.length) {
+      const node: string = nodes.pop()!;
+      assert(g.hasNode(node));
+
+      for(let dependency of g.outEdges(node)) {
+        newGraph.addNode(dependency);
+        newGraph.addDependency(node, dependency);
       }
-      let wg: Graph = new Graph(vertices, edges, { directed: true });
-      graphs.push(wg);
+
+      for(let dependent of g.inEdges(node)) {
+        newGraph.addNode(dependent);
+        newGraph.addDependency(node, dependent);
+      }
     }
-  });
+    graphs.push(newGraph);
+  };
   return graphs;
 }

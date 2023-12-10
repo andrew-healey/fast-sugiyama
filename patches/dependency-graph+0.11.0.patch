@@ -1,0 +1,26 @@
+diff --git a/node_modules/dependency-graph/lib/dep_graph.js b/node_modules/dependency-graph/lib/dep_graph.js
+index a64f801..050ac80 100755
+--- a/node_modules/dependency-graph/lib/dep_graph.js
++++ b/node_modules/dependency-graph/lib/dep_graph.js
+@@ -69,9 +69,9 @@ function createDFS(edges, leavesOnly, result, circular) {
+  * Simple Dependency Graph
+  */
+ var DepGraph = (exports.DepGraph = function DepGraph(opts) {
+-  this.nodes = {}; // Node -> Node/Data (treated like a Set)
+-  this.outgoingEdges = {}; // Node -> [Dependency Node]
+-  this.incomingEdges = {}; // Node -> [Dependant Node]
++  this.nodes = Object.create(null); // Node -> Node/Data (treated like a Set)
++  this.outgoingEdges = Object.create(null); // Node -> [Dependency Node]
++  this.incomingEdges = Object.create(null); // Node -> [Dependant Node]
+   this.circular = opts && !!opts.circular; // Allows circular deps
+ });
+ DepGraph.prototype = {
+@@ -118,7 +118,7 @@ DepGraph.prototype = {
+    * Check if a node exists in the graph
+    */
+   hasNode: function (node) {
+-    return this.nodes.hasOwnProperty(node);
++    return Object.hasOwn(this.nodes,node);
+   },
+   /**
+    * Get the data associated with a node name

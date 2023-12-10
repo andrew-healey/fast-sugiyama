@@ -1,23 +1,15 @@
-import { Vertex } from '@/interface/graph';
+import {Graph} from '../interface/graph';
+import {assert} from './uuid'
 
-export function edgeMatrix(ups: Array<Vertex>, downs: Array<Vertex>): Array<Array<number>> {
-  let em: Array<Array<any>> = [];
-  ups.map((up, i) => {
-    em[i] = [];
-    downs.map((down, j) => {
-      if (hasEdge(up, down)) em[i][j] = 1;
-      else em[i][j] = 0;
-    });
-  });
-  return em;
-}
-
-function hasEdge(from: Vertex, to: Vertex): boolean {
-  let exist: boolean = false;
-  from.edges.map((edge) => {
-    if (edge.down == to) exist = true;
-  });
-  return exist;
+export function edgeMatrix(g:Graph<any>,ups: string[], downs: string[]): number[][] {
+  const edgeMatrix = ups.map((up) => 
+    downs.map((down) => { 
+      assert(g.hasNode(up));
+      assert(g.hasNode(down));
+      return g.outEdges(up).has(down) ? 1 : 0
+    })
+  );
+  return edgeMatrix;
 }
 
 export function range(from: number, to: number, step?: number): Array<number> {

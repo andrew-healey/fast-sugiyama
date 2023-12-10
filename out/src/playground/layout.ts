@@ -5,25 +5,16 @@ exports.calcHierachyLayout = void 0;
 var sun_hierarchy_1 = __webpack_require__( /*! sun-hierarchy */ "./node_modules/sun-hierarchy/dist/index.js");
 
 function calcHierachyLayout(graph) {
-  var vMap = {};
-  var vertices = graph.vertices.map(function(v) {
-    var node = new sun_hierarchy_1.Vertex(v.id);
-    vMap[v.id] = node;
-    return node;
-  });
-  var edges = graph.edges
-    .map(function(e) {
-      if (vMap[e.source] && vMap[e.target]) {
-        return new sun_hierarchy_1.Edge(vMap[e.source], vMap[e.target]);
-      }
-      return undefined;
-    })
-    .filter(function(e) {
-      return !!e;
-    });
-  var g = new sun_hierarchy_1.Graph(vertices, edges, {
-    directed: true
-  });
+  const g = new sun_hierarchy_1.Graph();
+  for(let v of graph.vertices){
+    g.addNode(v.id,v)
+  }
+  console.log('new stuff')
+  for(let e of graph.edges){
+    const {source,target} = e;
+    // debugger;
+    g.addDependency(source,target);
+  }
   var graphs = (0, sun_hierarchy_1.default)(g, {
     margin: {
       left: 20,

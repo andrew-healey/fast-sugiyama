@@ -15,31 +15,28 @@
  * (f) The layout of edges coming into (or going out of) a vertex is balanced, i.e., edges are evenlyspaced around a common target (or source) vertex.
  */
 
-import Graph, { Vertex } from '@/interface/graph';
-import { divide } from '@/algos/weakconnect';
-import { makeHierarchy } from '@/algos/hierarchy';
-import { LayoutOptions } from '@/interface/definition';
-import { defaultOptions } from '@/interface/constant';
-import { baryCentric } from '@/algos/barycentric';
-import { brandeskopf } from '@/algos/brandeskopf';
+import { divide } from './weakconnect';
+import { makeHierarchy } from './hierarchy';
+import { LayoutOptions } from '../interface/definition';
+import { defaultOptions } from '../interface/constant';
+import { baryCentric } from './barycentric';
+import { brandeskopf,BKGraph } from './brandeskopf';
 
-export function layout(g: Graph, options = defaultOptions): Graph[] {
-  const finalGraphs: Graph[] = [];
-  const graphs: Graph[] = divide(g);
+export function layout(g: BKGraph, options = defaultOptions): BKGraph[] {
+  const graphs: BKGraph[] = divide(g);
   let aggregateLeftMargin: number = 0;
   const mergedOptions: LayoutOptions = { ...options };
   const { width, gutter = 0 } = mergedOptions;
-  graphs.map((subGraph) => {
-    const levels: Vertex[][] = makeHierarchy(subGraph);
-    const { levels: orderedLevels } = baryCentric(levels, {});
-    brandeskopf(orderedLevels, mergedOptions);
+  return graphs.map((subGraph) => {
+    const levels: string[][] = makeHierarchy(subGraph);
+    const { levels: orderedLevels } = baryCentric(g,levels, {});
+    brandeskopf(subGraph,orderedLevels, mergedOptions);
     const maxWidth: number = Math.max.apply(
       null,
-      orderedLevels.flatMap((vertices) => vertices).map((v) => v.getOptions('x')),
+      orderedLevels.flatMap((nodeIds) => nodeIds).map((nodeId) => g.data(nodeId).x!),
     );
     aggregateLeftMargin = maxWidth + width + (gutter || 20);
     mergedOptions.margin = { ...(mergedOptions.margin || {}), left: aggregateLeftMargin };
-    finalGraphs.push(subGraph);
+    return subGraph;
   });
-  return finalGraphs;
 }

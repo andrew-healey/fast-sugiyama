@@ -5,3 +5,9 @@ export function uuidv4(): string {
     return v.toString(16);
   });
 }
+
+export const assert = (condition: any, message?: string) => {
+  if (!condition) {
+    throw new Error(message);
+  }
+}

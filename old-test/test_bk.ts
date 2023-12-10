@@ -1,7 +1,7 @@
 import Graph, { Vertex, Edge } from '@/interface/graph';
 import { markConflicts, alignVertices, brandeskopf } from '@/algos/brandeskopf';
 import { DUMMY } from '@/interface/constant';
-import { printVertices } from '@/utils/graph';
+import { showVertices } from '@/utils/graph';
 
 describe('Position layout bk new', () => {
   let vertices: Array<Vertex> = [];
@@ -143,7 +143,7 @@ describe('Position layout bk new', () => {
     for (let i = 0; i < sortLevels.length; i++) {
       console.log(sortLevels[i].map((v) => `${v.id}: ${v.getOptions('x')}`).join(' , '));
     }
-    printVertices(sortLevels);
+    showVertices(sortLevels);
   });
   it('Should do right layout', () => {
     let vertices: Array<Vertex> = [];
@@ -178,6 +178,6 @@ describe('Position layout bk new', () => {
     for (let i = 0; i < sortLevels.length; i++) {
       console.log(sortLevels[i].map((v) => `${v.id}: ${v.getOptions('x')}`).join(' , '));
     }
-    printVertices(sortLevels);
+    showVertices(sortLevels);
   });
 });

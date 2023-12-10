@@ -1,5 +1,5 @@
-import { Vertex } from '@/interface/graph';
-import { edgeMatrix } from '@/utils/edge';
+import {Graph} from '../interface/graph';
+import { edgeMatrix } from '../utils/edge';
 
 /*
  * heuristic method for the reordering of the row order \sigma_1 = v_1 v_2 \cdots v_{|V_1|} to
@@ -17,8 +17,8 @@ export interface RowCol {
 }
 
 type TwoLevelbaryCentricResult = {
-  row: Vertex[];
-  col: Vertex[];
+  row: string[];
+  col: string[];
   crossCount: number;
 };
 
@@ -46,12 +46,12 @@ type MulLevelbaryCentricOptions = {
 };
 
 type MulLevelbaryCentricResult = {
-  levels: Vertex[][];
+  levels: string[][];
   totalCross: number;
 };
 
 export type baryCentricResult = {
-  levels: Vertex[][];
+  levels: string[][];
   crossCount: number;
 };
 
@@ -67,19 +67,8 @@ export type BaryCentricOptions = {
 const DEFAULT_TOTAL_ROUND = 12;
 const DEFAULT_TOTAL_BI_ROUND = 6;
 
-function crossCount(rows: Vertex[], cols: Vertex[]): number {
-  const matrix: number[][] = [];
-  rows.map((vr, row) => {
-    matrix[row] = [];
-    cols.map((vc, col) => {
-      const hasEdge = vr.edges.findIndex((edge) => edge.down.id === vc.id) !== -1;
-      if (hasEdge) {
-        matrix[row][col] = 1;
-      } else {
-        matrix[row][col] = 0;
-      }
-    });
-  });
+function crossCount(g:Graph,rows: string[], cols: string[]): number {
+  const matrix: number[][] = edgeMatrix(g,rows, cols);
   let totalCross = 0;
   for (let r = 0; r < matrix.length; r++) {
     const row = matrix[r];
@@ -111,10 +100,10 @@ function getKey(key1: string | number, key2: string | number, reversed: boolean 
  * @param nextLevel vertices at next level
  * @returns baryCentric coefficient of everty vertex in prevLeven and nextLevel
  */
-function calcbaryCentricCoefficient(prevLevel: Array<Vertex>, nextLevel: Array<Vertex>) {
-  const matrix: Array<Array<number>> = edgeMatrix(prevLevel, nextLevel);
-  let rows: Array<number> = [];
-  let cols: Array<number> = [];
+function calcbaryCentricCoefficient(g:Graph,prevLevel: string[], nextLevel: Array<string>) {
+  const matrix: number[][] = edgeMatrix(g,prevLevel, nextLevel);
+  let rows: number[] = [];
+  let cols: number[] = [];
   prevLevel.map((_v, idx) => {
     rows[idx] =
       matrix[idx].map((v, i) => v * (i + 1)).reduce((prev, cur) => prev + cur, 0) /
@@ -142,8 +131,9 @@ function calcbaryCentricCoefficient(prevLevel: Array<Vertex>, nextLevel: Array<V
  * @returns
  */
 export function calcTwoLevelbaryCentric(
-  row: Vertex[],
-  col: Vertex[],
+  g:Graph,
+  row: string[],
+  col: string[],
   {
     currentRound = 1,
     totalRound = DEFAULT_TOTAL_BI_ROUND,
@@ -153,8 +143,8 @@ export function calcTwoLevelbaryCentric(
     colFixed,
   }: TwoLevelbaryCentricOptions,
 ): TwoLevelbaryCentricResult {
-  const { rows } = calcbaryCentricCoefficient(row, col);
-  let KS: number = crossCount(row, col);
+  const { rows } = calcbaryCentricCoefficient(g,row, col);
+  let KS: number = crossCount(g,row, col);
   let KSS = KS;
   let rowOrdered = false;
   let colOrdered = false;
@@ -172,7 +162,7 @@ export function calcTwoLevelbaryCentric(
       .map((order) => {
         return row[order.idx];
       });
-    KSS = crossCount(newRow, col);
+    KSS = crossCount(g,newRow, col);
     if (KSS < KS) {
       rowOrdered = true;
       KS = KSS;
@@ -181,7 +171,7 @@ export function calcTwoLevelbaryCentric(
 
   let newCol = [...col];
   if (!colFixed) {
-    const { cols } = calcbaryCentricCoefficient(newRow, col);
+    const { cols } = calcbaryCentricCoefficient(g,newRow, col);
     newCol = cols
       .map((r, i) => {
         return { value: r, idx: i };
@@ -193,13 +183,13 @@ export function calcTwoLevelbaryCentric(
       .map((order) => {
         return col[order.idx];
       });
-    KSS = crossCount(newRow, newCol);
+    KSS = crossCount(g,newRow, newCol);
     if (KSS < KS) {
       colOrdered = true;
       KS = KSS;
     }
   }
-  return finetuneTwoLevelbaryCentric(rowOrdered ? newRow : [...row], colOrdered ? newCol : [...col], {
+  return finetuneTwoLevelbaryCentric(g,rowOrdered ? newRow : [...row], colOrdered ? newCol : [...col], {
     currentRound,
     totalRound,
     exchanged,
@@ -218,8 +208,9 @@ export function calcTwoLevelbaryCentric(
  * @returns baryCentric coefficient of everty vertex in prevLeven and nextLevel
  */
 function finetuneTwoLevelbaryCentric(
-  row: Vertex[],
-  col: Vertex[],
+  g:Graph,
+  row: string[],
+  col: string[],
   {
     currentRound = 1,
     totalRound = DEFAULT_TOTAL_BI_ROUND,
@@ -231,7 +222,7 @@ function finetuneTwoLevelbaryCentric(
 ): TwoLevelbaryCentricResult {
   // reach iteration max limit or eliminate all crosses
   if (currentRound >= totalRound || crossCount === 0) return { row, col, crossCount };
-  const { rows, cols } = calcbaryCentricCoefficient(row, col);
+  const { rows, cols } = calcbaryCentricCoefficient(g,row, col);
   const isRowMonotonicallyIncreasing =
     rows.filter((v, i) => {
       if (i === rows.length - 1) return false;
@@ -249,16 +240,16 @@ function finetuneTwoLevelbaryCentric(
   } else if (isColMonotonicallyIncreasing) {
     if (rowFixed) return { row, col, crossCount };
     let allChanged = true;
-    const reOrderedRow: Vertex[] = rows
+    const reOrderedRow: string[] = rows
       .map((r, i) => {
         return { value: r, idx: i };
       })
       .sort((a, b) => {
         if (a.value === b.value) {
-          const hasExchanged = exchanged[getKey(row[a.idx].id, row[b.idx].id)];
+          const hasExchanged = exchanged[getKey(row[a.idx], row[b.idx])];
           if (hasExchanged) return 0;
-          exchanged[getKey(row[a.idx].id, row[b.idx].id)] = true;
-          exchanged[getKey(row[a.idx].id, row[b.idx].id, true)] = true;
+          exchanged[getKey(row[a.idx], row[b.idx])] = true;
+          exchanged[getKey(row[a.idx], row[b.idx], true)] = true;
           allChanged = false;
           return 1;
         }
@@ -266,7 +257,7 @@ function finetuneTwoLevelbaryCentric(
       })
       .map((order) => row[order.idx]);
     if (allChanged) return { row, col, crossCount };
-    return calcTwoLevelbaryCentric(reOrderedRow, col, {
+    return calcTwoLevelbaryCentric(g,reOrderedRow, col, {
       currentRound: currentRound + 1,
       totalRound,
       exchanged,
@@ -278,16 +269,16 @@ function finetuneTwoLevelbaryCentric(
   } else {
     if (colFixed) return { row, col, crossCount };
     let allChanged = true;
-    const reOrderedCols: Vertex[] = cols
+    const reOrderedCols: string[] = cols
       .map((r, i) => {
         return { value: r, idx: i };
       })
       .sort((a, b) => {
         if (a.value === b.value) {
-          const hasExchanged = exchanged[getKey(col[a.idx].id, col[b.idx].id)];
+          const hasExchanged = exchanged[getKey(col[a.idx], col[b.idx])];
           if (hasExchanged) return 0;
-          exchanged[getKey(col[a.idx].id, col[b.idx].id)] = true;
-          exchanged[getKey(col[a.idx].id, col[b.idx].id, true)] = true;
+          exchanged[getKey(col[a.idx], col[b.idx])] = true;
+          exchanged[getKey(col[a.idx], col[b.idx], true)] = true;
           allChanged = false;
           return 1;
         }
@@ -297,7 +288,7 @@ function finetuneTwoLevelbaryCentric(
         return col[order.idx];
       });
     if (allChanged) return { row, col, crossCount };
-    return calcTwoLevelbaryCentric(row, reOrderedCols, {
+    return calcTwoLevelbaryCentric(g,row, reOrderedCols, {
       currentRound: currentRound + 1,
       totalRound,
       minCross: crossCount,
@@ -308,22 +299,22 @@ function finetuneTwoLevelbaryCentric(
   }
 }
 
-function downUpPhase(levels: Vertex[][]): MulLevelbaryCentricResult {
+function downUpPhase(g:Graph,levels: string[][]): MulLevelbaryCentricResult {
   let totalCross = 0;
   levels.map((vertices, idx) => {
     if (idx === levels.length - 1) return;
-    const { col, crossCount } = calcTwoLevelbaryCentric(vertices, levels[idx + 1], { rowFixed: true });
+    const { col, crossCount } = calcTwoLevelbaryCentric(g,vertices, levels[idx + 1], { rowFixed: true });
     totalCross += crossCount;
     levels[idx + 1] = col;
   });
   return { levels, totalCross };
 }
 
-function upDownPhase(levels: Vertex[][]): MulLevelbaryCentricResult {
+function upDownPhase(g:Graph,levels: string[][]): MulLevelbaryCentricResult {
   let totalCross = 0;
   for (let i = levels.length - 1; i > 0; i--) {
     if (i === 0) continue;
-    const { row, crossCount } = calcTwoLevelbaryCentric(levels[i - 1], levels[i], { colFixed: true });
+    const { row, crossCount } = calcTwoLevelbaryCentric(g,levels[i - 1], levels[i], { colFixed: true });
     totalCross += crossCount;
     levels[i - 1] = row;
   }
@@ -331,7 +322,8 @@ function upDownPhase(levels: Vertex[][]): MulLevelbaryCentricResult {
 }
 
 export function calcMulLevelbaryCentric(
-  levels: Vertex[][],
+  g:Graph,
+  levels: string[][],
   { totalRound = DEFAULT_TOTAL_ROUND, totalCross = Number.POSITIVE_INFINITY }: MulLevelbaryCentricOptions,
 ): MulLevelbaryCentricResult {
   let currentRound = 0;
@@ -343,15 +335,15 @@ export function calcMulLevelbaryCentric(
     };
   }
   // from low levels to high
-  const { levels: downUpLevels, totalCross: downUpCross } = downUpPhase(orderedLevels);
+  const { levels: downUpLevels, totalCross: downUpCross } = downUpPhase(g,orderedLevels);
   let roundLevels = [...orderedLevels];
   if (downUpCross < totalCross) {
     totalCross = downUpCross;
     roundLevels = downUpLevels;
   }
   while (currentRound < totalRound) {
-    const { levels: upDownLevels } = upDownPhase(roundLevels);
-    const result = downUpPhase(upDownLevels);
+    const { levels: upDownLevels } = upDownPhase(g,roundLevels);
+    const result = downUpPhase(g,upDownLevels);
     currentRound += 2;
     roundLevels = result.levels;
     const roundCross = result.totalCross;
@@ -370,12 +362,12 @@ export function calcMulLevelbaryCentric(
  * @param options configuration to adjust total round, etc
  * @returns reordered vertices of each level and minimum crossings reached
  */
-export function baryCentric(levels: Vertex[][], options: BaryCentricOptions = {}) {
+export function baryCentric(g:Graph,levels: string[][], options: BaryCentricOptions = {}) {
   if (levels.length <= 1) return { levels, crossCount: 0 };
   if (levels.length === 2) {
-    const { row, col, crossCount } = calcTwoLevelbaryCentric(levels[0], levels[1], options);
+    const { row, col, crossCount } = calcTwoLevelbaryCentric(g,levels[0], levels[1], options);
     return { levels: [row, col], crossCount };
   }
-  const { levels: orderedLevels, totalCross } = calcMulLevelbaryCentric(levels, options);
+  const { levels: orderedLevels, totalCross } = calcMulLevelbaryCentric(g,levels, options);
   return { levels: orderedLevels, crossCount: totalCross };
 }

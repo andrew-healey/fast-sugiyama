@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import Graph, { Vertex, Edge } from '@/interface/graph';
 import { baryCentric } from '@/algos/barycentric';
 import { vegetables } from './data/data';
-import { printVertices } from '@/utils/graph';
+import { showVertices } from '@/utils/graph';
 
 describe('BaryCentric Method', () => {
   let vertices: Array<Vertex> = [];
@@ -222,7 +222,7 @@ describe('BaryCentric Method', () => {
       [vertices[11]],
     ];
     const { levels: nLevels, crossCount } = baryCentric(levels, {});
-    printVertices(levels);
+    showVertices(levels);
     expect(crossCount).equal(0);
   });
 });

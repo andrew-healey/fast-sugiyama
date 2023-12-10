@@ -1,80 +1,50 @@
-import Graph, { Vertex, Edge } from '@/interface/graph';
-import { uuidv4 } from '@/utils/uuid';
+import Graph from '../interface/graph';
+import { CoordData } from '../interface/definition';
+import { uuidv4 } from '../utils/uuid';
+import {assert} from './uuid'
 
 // in-place transpose edge direction
-export function transpose(g: Graph): Graph {
-  g.edges.map((edge) => {
-    const v: Vertex = edge.down;
-    edge.down = edge.up;
-    edge.up = v;
-  });
-  return g;
-}
-
-export function findVertexById(g: Graph, vid: number | string): Vertex | null {
-  let found = null;
-  g.vertices.map((v) => {
-    if (v.id === vid) found = v;
-  });
-  return found;
-}
-
-export function cloneGraph(g: Graph): Graph {
-  let replica: Graph = new Graph([], [], { directed: true });
-  // clone W to Graph pg
-  g.vertices.map((v) => {
-    replica.addVertex(new Vertex(v.id));
-  });
-  g.edges.map((edge) => {
-    const upVertex = findVertexById(replica, edge.up.id);
-    const downVertex = findVertexById(replica, edge.down.id);
-    if (upVertex && downVertex) {
-      replica.addEdge(new Edge(upVertex, downVertex));
+export function transpose<T>(g: Graph<T>): Graph<T> {
+  const newGraph = new Graph<T>();
+  for(let node of g.ns()){
+    newGraph.addNode(node,g.data(node));
+  }
+  for(let node of g.ns()){
+    for(let dependency of g.outEdges(node)){
+      newGraph.addDependency(dependency,node);
     }
-  });
-  return replica;
+  }
+  return newGraph;
 }
 
-export function printVertexNeighbours(g: Graph) {
+export function printVertexNeighbours<T>(g: Graph<T>) {
   console.log('== print incident edges of vertex ==');
-  g.vertices.map((v) => {
-    let ups: Array<number> = [];
-    let downs: Array<number> = [];
-    v.edges.map((edge) => {
-      if (edge.up == v) downs.push((edge.down.id as number) + 1);
-      if (edge.down == v) ups.push((edge.up.id as number) + 1);
-    });
-    console.log(ups.join(','), '->', (v.id as number) + 1, '->', downs.join(','));
-  });
+  for(let node in g.ns()){
+    const outgoing = g.directDependenciesOf(node);
+    const incoming = g.directDependantsOf(node);
+    console.log(`${node} -> ${outgoing.join(',')}`);
+    console.log(`${node} <- ${incoming.join(',')}`);
+  }
 }
 
 export function getDummyId() {
   return uuidv4();
 }
 
-export function printVertices(levels: Vertex[][]) {
-  let maxWidth = 0;
-  levels
-    .flatMap((vertices) => vertices)
-    .map((v) => {
-      if (v.getOptions('x') > maxWidth) maxWidth = v.getOptions('x');
-    });
-  levels.map((vertices) => {
-    let formatted = '';
-    vertices.map((v, idx) => {
-      if (idx === 0) {
-        const spaces = (v.getOptions('x') * 50) / maxWidth;
-        for (let i = 0; i < spaces; i++) {
-          formatted += ' ';
-        }
-      } else {
-        const spaces = ((v.getOptions('x') - vertices[idx - 1].getOptions('x')) * 50) / maxWidth || 1;
-        for (let i = 0; i < spaces; i++) {
-          formatted += ' ';
-        }
-      }
-      formatted += v.id;
-    });
-    console.log(formatted + '\n');
-  });
+export function showVertices(g:Graph<CoordData>,levels: string[][]):string {
+  const xs = levels.flatMap(nodeIds=>nodeIds.map(nodeId=>g.data(nodeId).x!));
+  assert(xs.every(x=>typeof x === 'number'),'x should be number');
+  const maxWidth = xs.reduce((acc,cur)=>Math.max(acc,cur),0);
+  const ret = levels.map((nodeIds) => 
+    nodeIds.reduce(({str,prevX},nodeId)=>{
+      const node = g.data(nodeId);
+      const spaces = (node.x! - prevX) * 50 / maxWidth;
+      for(let i=0;i<spaces;i++) str += ' ';
+      str += nodeId;
+      return {str,prevX:node.x!};
+    }, {str:'',prevX:0})
+  ).join('\n');;
+
+  console.log(ret);
+  return ret;
 }
